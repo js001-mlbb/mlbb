@@ -499,17 +499,19 @@ function renderSaisonSelector(){
   });
 }
 
-function matchesForView(){
+function matchesForView(applyStatsFilters=true){
   let list=activeSaison?matches.filter(m=>(m.saison||'S41')===activeSaison):[...matches];
-  // Apply analytics filters if on stats tab
-  const fStatsMode=document.getElementById('fStatsMode')?.value||'';
-  const fStatsDateFrom=document.getElementById('fStatsDateFrom')?.value||'';
-  const fStatsDateTo=document.getElementById('fStatsDateTo')?.value||'';
-  const fStatsSaison=document.getElementById('fStatsSaison')?.value||'';
-  if(fStatsMode)list=list.filter(m=>(m.mode_jeu||'Solo')===fStatsMode);
-  if(fStatsDateFrom)list=list.filter(m=>m.date&&m.date>=fStatsDateFrom);
-  if(fStatsDateTo)list=list.filter(m=>m.date&&m.date<=fStatsDateTo);
-  if(fStatsSaison)list=list.filter(m=>(m.saison||'S41')===fStatsSaison);
+  // Apply analytics filters only when called from analytics context
+  if(applyStatsFilters){
+    const fStatsMode=document.getElementById('fStatsMode')?.value||'';
+    const fStatsDateFrom=document.getElementById('fStatsDateFrom')?.value||'';
+    const fStatsDateTo=document.getElementById('fStatsDateTo')?.value||'';
+    const fStatsSaison=document.getElementById('fStatsSaison')?.value||'';
+    if(fStatsMode)list=list.filter(m=>(m.mode_jeu||'Solo')===fStatsMode);
+    if(fStatsDateFrom)list=list.filter(m=>m.date&&m.date>=fStatsDateFrom);
+    if(fStatsDateTo)list=list.filter(m=>m.date&&m.date<=fStatsDateTo);
+    if(fStatsSaison)list=list.filter(m=>(m.saison||'S41')===fStatsSaison);
+  }
   return list;
 }
 
@@ -827,7 +829,8 @@ function renderDraft(){
   const selectedHero=heroSel.value||curHero;
 
   // Filter matches with compo data for this hero
-  const heroMatches=matches.filter(m=>m.heroe===selectedHero&&m.compo_adverse);
+  const allMatchesForDraft=matchesForView(false);
+  const heroMatches=allMatchesForDraft.filter(m=>m.heroe===selectedHero&&m.compo_adverse);
   const totalWithCompo=heroMatches.length;
 
   if(!totalWithCompo){
@@ -1425,7 +1428,7 @@ function renderHeroCards(){
   const fHTabDateFrom=document.getElementById('fHeroTabDateFrom')?.value||'';
   const fHTabDateTo=document.getElementById('fHeroTabDateTo')?.value||'';
   const fHTabSaison=document.getElementById('fHeroTabSaison')?.value||'';
-  let matches=matchesForView();
+  let matches=matchesForView(false);
   if(fHTabMode)matches=matches.filter(m=>(m.mode_jeu||'Solo')===fHTabMode);
   if(fHTabResult)matches=matches.filter(m=>m.resultat===fHTabResult);
   if(fHTabDateFrom)matches=matches.filter(m=>m.date&&m.date>=fHTabDateFrom);
