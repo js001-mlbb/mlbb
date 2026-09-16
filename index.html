@@ -1559,7 +1559,8 @@ function getFilteredMatches(){
   const fDateFrom=document.getElementById('fDateFrom')?.value||'';
   const fDateTo=document.getElementById('fDateTo')?.value||'';
   const fMode2=document.getElementById('fMode')?.value||'';
-  let list=activeSaison?matches.filter(m=>(m.saison||'S41')===activeSaison):[...matches];
+  const saisonHasDataH=activeSaison&&matches.some(m=>(m.saison||'S41')===activeSaison);
+  let list=saisonHasDataH?matches.filter(m=>(m.saison||'S41')===activeSaison):[...matches];
   if(fHero)list=list.filter(m=>m.heroe===fHero);
   if(fRes)list=list.filter(m=>m.resultat===fRes);
   if(fLane)list=list.filter(m=>m.role===fLane);
