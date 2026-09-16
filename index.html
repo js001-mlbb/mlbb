@@ -612,8 +612,9 @@ function renderKPIs(){
 // ─── ROLLING WINRATE LABEL ───
 function renderRollingWR(){
   const el=document.getElementById('winRateRolling');
-  if(matches.length<5){el.innerHTML='';return;}
-  const last20=[...matches].sort((a,b)=>(a.idx??0)-(b.idx??0)).slice(-20);
+  const filteredMatches=matchesForView();
+  if(filteredMatches.length<5){el.innerHTML='';return;}
+  const last20=[...filteredMatches].sort((a,b)=>(a.idx??0)-(b.idx??0)).slice(-20);
   const wr=Math.round(last20.filter(m=>m.resultat==='Victoire').length/last20.length*100);
   const col=wr>=50?'var(--gold)':'var(--crimson)';
   el.innerHTML=`<div style="font-size:13px;color:var(--muted);">Winrate 20 dernières parties : <span style="color:${col};font-family:Inter,sans-serif;font-size:24px;font-weight:700;">${wr}%</span></div>`;
