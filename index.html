@@ -326,7 +326,6 @@ input[type="date"].filter-select{padding:3px 6px;font-size:10px;}
         <select class="filter-select" id="fStatsMode"><option value="">Tous modes</option><option value="Solo">Solo</option><option value="Duo">Duo</option><option value="Trio">Trio</option></select>
         <input type="date" class="filter-select" id="fStatsDateFrom" title="Du">
         <input type="date" class="filter-select" id="fStatsDateTo" title="Au">
-        <select class="filter-select" id="fStatsSaison"><option value="">Toutes saisons</option></select>
         <button class="btn-ghost-sm" id="clearStatsFilters">Effacer</button>
       </div>
     </div>
@@ -381,7 +380,6 @@ input[type="date"].filter-select{padding:3px 6px;font-size:10px;}
         <select class="filter-select" id="fHeroTabResult"><option value="">Tous résultats</option><option value="Victoire">Victoires</option><option value="Defaite">Défaites</option></select>
         <input type="date" class="filter-select" id="fHeroTabDateFrom" title="Du">
         <input type="date" class="filter-select" id="fHeroTabDateTo" title="Au">
-        <select class="filter-select" id="fHeroTabSaison"><option value="">Toutes saisons</option></select>
         <button class="btn-ghost-sm" id="clearHeroFilters">Effacer</button>
       </div>
     </div>
@@ -396,10 +394,7 @@ input[type="date"].filter-select{padding:3px 6px;font-size:10px;}
         <select class="filter-select" id="fHero"><option value="">Tous les héros</option></select>
         <select class="filter-select" id="fResult"><option value="">Tous résultats</option><option value="Victoire">Victoires</option><option value="Defaite">Défaites</option></select>
         <select class="filter-select" id="fLane"><option value="">Toutes lanes</option><option value="Gold">Gold</option><option value="Exp">Exp</option><option value="Mid">Mid</option><option value="Jungle">Jungle</option><option value="Roam">Roam</option></select>
-        <select class="filter-select" id="fSaison">
-          <option value="">Toutes saisons</option>
-        </select>
-        <select class="filter-select" id="fMode"><option value="">Tous modes</option><option value="Solo">Solo</option><option value="Duo">Duo</option><option value="Trio">Trio</option></select>
+<select class="filter-select" id="fMode"><option value="">Tous modes</option><option value="Solo">Solo</option><option value="Duo">Duo</option><option value="Trio">Trio</option></select>
         <select class="filter-select" id="fPeriod"><option value="">Toute période</option><option value="7">7 derniers jours</option><option value="30">30 derniers jours</option></select>
         <input type="date" class="filter-select" id="fDateFrom" title="Du">
         <input type="date" class="filter-select" id="fDateTo" title="Au">
@@ -513,14 +508,7 @@ function renderSaisonSelector(){
   const el=document.getElementById('saisonSelector');
   if(!el)return;
   const saisons=getSaisons();
-  // Also update stats and hero tab saison filters
-  ['fStatsSaison','fHeroTabSaison'].forEach(selId=>{
-    const sel=document.getElementById(selId);
-    if(sel){
-      const cur=sel.value;
-      sel.innerHTML='<option value="">Toutes saisons</option>'+saisons.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
-    }
-  });
+
   el.innerHTML=`
     <select id="saisonSelect" style="background:var(--surface-2);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:6px;font-size:14px;font-family:Inter,sans-serif;font-weight:600;">
       ${saisons.map(s=>`<option value="${s}"${activeSaison===s?' selected':''}>${s}</option>`).join('')}
@@ -565,11 +553,9 @@ function matchesForView(applyStatsFilters=true){
     const fStatsMode=document.getElementById('fStatsMode')?.value||'';
     const fStatsDateFrom=document.getElementById('fStatsDateFrom')?.value||'';
     const fStatsDateTo=document.getElementById('fStatsDateTo')?.value||'';
-    const fStatsSaison=document.getElementById('fStatsSaison')?.value||'';
     if(fStatsMode)list=list.filter(m=>(m.mode_jeu||'Solo')===fStatsMode);
     if(fStatsDateFrom)list=list.filter(m=>m.date&&m.date>=fStatsDateFrom);
     if(fStatsDateTo)list=list.filter(m=>m.date&&m.date<=fStatsDateTo);
-    if(fStatsSaison)list=list.filter(m=>(m.saison||'S41')===fStatsSaison);
   }
   return list;
 }
@@ -1519,13 +1505,11 @@ function renderHeroCards(){
   const fHTabResult=document.getElementById('fHeroTabResult')?.value||'';
   const fHTabDateFrom=document.getElementById('fHeroTabDateFrom')?.value||'';
   const fHTabDateTo=document.getElementById('fHeroTabDateTo')?.value||'';
-  const fHTabSaison=document.getElementById('fHeroTabSaison')?.value||'';
   let matches=matchesForView(false);
   if(fHTabMode)matches=matches.filter(m=>(m.mode_jeu||'Solo')===fHTabMode);
   if(fHTabResult)matches=matches.filter(m=>m.resultat===fHTabResult);
   if(fHTabDateFrom)matches=matches.filter(m=>m.date&&m.date>=fHTabDateFrom);
   if(fHTabDateTo)matches=matches.filter(m=>m.date&&m.date<=fHTabDateTo);
-  if(fHTabSaison)matches=matches.filter(m=>(m.saison||'S41')===fHTabSaison);
   const hs=heroStats(matches);
   const el=document.getElementById('heroCards');
   const entries=Object.entries(hs);
@@ -1578,7 +1562,6 @@ function getFilteredMatches(){
   const fRes=document.getElementById('fResult').value;
   const fLane=document.getElementById('fLane').value;
   const fPeriod=document.getElementById('fPeriod').value;
-  const fSaison=document.getElementById('fSaison')?.value||'';
   const fDateFrom=document.getElementById('fDateFrom')?.value||'';
   const fDateTo=document.getElementById('fDateTo')?.value||'';
   const fMode2=document.getElementById('fMode')?.value||'';
@@ -1586,7 +1569,6 @@ function getFilteredMatches(){
   if(fHero)list=list.filter(m=>m.heroe===fHero);
   if(fRes)list=list.filter(m=>m.resultat===fRes);
   if(fLane)list=list.filter(m=>m.role===fLane);
-  if(fSaison)list=list.filter(m=>(m.saison||'S41')===fSaison);
   if(fMode2)list=list.filter(m=>(m.mode_jeu||'Solo')===fMode2);
   if(fPeriod){const cutoff=new Date();cutoff.setDate(cutoff.getDate()-+fPeriod);list=list.filter(m=>m.date&&new Date(m.date)>=cutoff);}
   if(fDateFrom)list=list.filter(m=>m.date&&m.date>=fDateFrom);
@@ -2122,7 +2104,7 @@ function switchTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 
 // ─── FILTERS ───
-['fHero','fResult','fLane','fMode','fSaison','fPeriod','fDateFrom','fDateTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',renderTable);});
+['fHero','fResult','fLane','fMode','fPeriod','fDateFrom','fDateTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',renderTable);});
 ['fHeroTabMode','fHeroTabResult','fHeroTabDateFrom','fHeroTabDateTo','fHeroTabSaison'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',renderHeroCards);});
 ['fStatsMode','fStatsDateFrom','fStatsDateTo','fStatsSaison'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{renderKPIs();renderRollingWR();renderAnalytics();});});
 document.getElementById('clearStatsFilters')?.addEventListener('click',()=>{
@@ -2134,7 +2116,7 @@ document.getElementById('clearHeroFilters')?.addEventListener('click',()=>{
   renderHeroCards();
 });
 document.getElementById('clearFilters').addEventListener('click',()=>{
-  ['fHero','fResult','fLane','fMode','fSaison','fPeriod','fDateFrom','fDateTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderTable();
+  ['fHero','fResult','fLane','fMode','fPeriod','fDateFrom','fDateTo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderTable();
 });
 
 // ─── EVENTS ───
