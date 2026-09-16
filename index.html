@@ -442,7 +442,6 @@ async function loadSaisonsFromDB(){
     if(r.ok){
       const data=await r.json();
       const dbSaisons=data.map(row=>row.nom);
-      // Merge with localStorage for offline support
       try{
         const local=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
         const merged=[...new Set([...dbSaisons,...local])];
@@ -450,25 +449,31 @@ async function loadSaisonsFromDB(){
       }catch(e){}
       return dbSaisons;
     }
-  }catch(e){}
-  // Fallback to localStorage
+    // 404 or other error - table doesn't exist yet, use localStorage only
+    console.warn('mlbb_saisons table not found, using localStorage fallback');
+  }catch(e){
+    console.warn('loadSaisonsFromDB error:', e);
+  }
   try{return JSON.parse(localStorage.getItem('createdSaisons')||'[]');}catch(e){return[];}
 }
 
 async function saveSaisonToDB(nom){
   try{
-    await sbFetch('/rest/v1/mlbb_saisons',{
+    const r=await sbFetch('/rest/v1/mlbb_saisons',{
       method:'POST',
       body:JSON.stringify({nom,compte:'JS001'}),
       headers:{'Prefer':'resolution=merge-duplicates'}
     });
-  }catch(e){console.warn('Saison save failed:',e);}
-  // Also persist locally as fallback
+    if(!r.ok)console.warn('saveSaisonToDB failed, table may not exist yet');
+  }catch(e){console.warn('saveSaisonToDB error:',e);}
+  // Always persist locally as fallback
   try{
     const created=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
     if(!created.includes(nom)){created.push(nom);localStorage.setItem('createdSaisons',JSON.stringify(created));}
   }catch(e){}
 }
+
+
 function getSaisons(){
   const s=new Set(matches.map(m=>m.saison).filter(Boolean));
   // Include seasons from localStorage (synced from DB)
