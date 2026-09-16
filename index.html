@@ -595,13 +595,15 @@ async function loadMatches(){
   // Restore activeSaison from localStorage first
   const savedSaison=localStorage.getItem('activeSaison');
   const saisons=getSaisons();
-  if(savedSaison&&savedSaison!==''){
-    // Use saved saison if it exists in data OR if it's a new season with no data yet
+  if(savedSaison&&savedSaison!==''&&saisons.includes(savedSaison)){
+    // Restore saved saison only if it exists in the list
     activeSaison=savedSaison;
     window._defaultSaison=savedSaison;
-  } else if(activeSaison===null&&saisons.length){
+  } else if(saisons.length){
+    // Default to most recent season
     activeSaison=saisons[0];
     window._defaultSaison=saisons[0];
+    try{localStorage.setItem('activeSaison',saisons[0]);}catch(e){}
   }
   renderAll();
 }
