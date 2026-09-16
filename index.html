@@ -434,53 +434,8 @@ const RANK_TIERS=['Warrior','Elite','Master','Grandmaster','Epic','Legend','Myth
 // ─── GESTION DES SAISONS ───
 let activeSaison = null; // null = toutes saisons
 
-
-// ─── GESTION DES SAISONS SUPABASE ───
-async function loadSaisonsFromDB(){
-  try{
-    const r=await sbFetch('/rest/v1/mlbb_saisons?select=nom&compte=eq.JS001&order=id.asc');
-    if(r.ok){
-      const data=await r.json();
-      const dbSaisons=data.map(row=>row.nom);
-      try{
-        const local=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-        const merged=[...new Set([...dbSaisons,...local])];
-        localStorage.setItem('createdSaisons',JSON.stringify(merged));
-      }catch(e){}
-      return dbSaisons;
-    }
-    // 404 or other error - table doesn't exist yet, use localStorage only
-    console.warn('mlbb_saisons table not found, using localStorage fallback');
-  }catch(e){
-    console.warn('loadSaisonsFromDB error:', e);
-  }
-  try{return JSON.parse(localStorage.getItem('createdSaisons')||'[]');}catch(e){return[];}
-}
-
-async function saveSaisonToDB(nom){
-  try{
-    const r=await sbFetch('/rest/v1/mlbb_saisons',{
-      method:'POST',
-      body:JSON.stringify({nom,compte:'JS001'}),
-      headers:{'Prefer':'resolution=merge-duplicates'}
-    });
-    if(!r.ok)console.warn('saveSaisonToDB failed, table may not exist yet');
-  }catch(e){console.warn('saveSaisonToDB error:',e);}
-  // Always persist locally as fallback
-  try{
-    const created=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-    if(!created.includes(nom)){created.push(nom);localStorage.setItem('createdSaisons',JSON.stringify(created));}
-  }catch(e){}
-}
-
-
 function getSaisons(){
   const s=new Set(matches.map(m=>m.saison).filter(Boolean));
-  // Include seasons from localStorage (synced from DB)
-  try{
-    const saved=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-    saved.forEach(sn=>s.add(sn));
-  }catch(e){}
   return [...s].sort((a,b)=>{
     const na=parseInt(a.replace(/\D/g,''))||0;
     const nb=parseInt(b.replace(/\D/g,''))||0;
@@ -494,7 +449,6 @@ function getActiveSaison(){
 
 function setActiveSaison(s){
   activeSaison=s;
-  try{localStorage.setItem("activeSaison",s||"");}catch(e){}
   renderSaisonSelector();
   renderAll();
 }
@@ -519,7 +473,6 @@ function renderSaisonSelector(){
   `;
   document.getElementById('saisonSelect').addEventListener('change',e=>{
     activeSaison=e.target.value||null;
-    try{localStorage.setItem('activeSaison',activeSaison||'');}catch(e){}
     renderAll();
   });
   if(document.getElementById('newSaisonBtn'))document.getElementById('newSaisonBtn').addEventListener('click',()=>{
@@ -539,8 +492,6 @@ function renderSaisonSelector(){
       if(!val)return;
       activeSaison=val;
       window._defaultSaison=val;
-      saveSaisonToDB(val);
-      try{localStorage.setItem('activeSaison',val);}catch(e){}
       form.remove();
       renderSaisonSelector();
       renderAll();
@@ -594,21 +545,6 @@ async function loadMatches(){
   }catch(e){
     const r2=localStorage.getItem(STORAGE_KEY);matches=r2?JSON.parse(r2):[];
     document.getElementById('syncStatus').textContent='⚠️ Mode hors ligne';
-  }
-  // Load seasons from DB
-  await loadSaisonsFromDB();
-  // Restore activeSaison from localStorage first
-  const savedSaison=localStorage.getItem('activeSaison');
-  const saisons=getSaisons();
-  if(savedSaison&&savedSaison!==''&&saisons.includes(savedSaison)){
-    // Restore saved saison only if it exists in the list
-    activeSaison=savedSaison;
-    window._defaultSaison=savedSaison;
-  } else if(saisons.length){
-    // Default to most recent season
-    activeSaison=saisons[0];
-    window._defaultSaison=saisons[0];
-    try{localStorage.setItem('activeSaison',saisons[0]);}catch(e){}
   }
   renderAll();
 }
@@ -676,9 +612,8 @@ function renderKPIs(){
 // ─── ROLLING WINRATE LABEL ───
 function renderRollingWR(){
   const el=document.getElementById('winRateRolling');
-  const filteredMatches=matchesForView();
-  if(filteredMatches.length<5){el.innerHTML='';return;}
-  const last20=[...filteredMatches].sort((a,b)=>(a.idx??0)-(b.idx??0)).slice(-20);
+  if(matches.length<5){el.innerHTML='';return;}
+  const last20=[...matches].sort((a,b)=>(a.idx??0)-(b.idx??0)).slice(-20);
   const wr=Math.round(last20.filter(m=>m.resultat==='Victoire').length/last20.length*100);
   const col=wr>=50?'var(--gold)':'var(--crimson)';
   el.innerHTML=`<div style="font-size:13px;color:var(--muted);">Winrate 20 dernières parties : <span style="color:${col};font-family:Inter,sans-serif;font-size:24px;font-weight:700;">${wr}%</span></div>`;
@@ -2155,8 +2090,6 @@ document.getElementById('newSaisonMenuBtn').addEventListener('click',()=>{
     const val=document.getElementById('newSaisonInput').value.trim();
     if(!val)return;
     activeSaison=val;window._defaultSaison=val;
-    saveSaisonToDB(val);
-    try{localStorage.setItem('activeSaison',val);}catch(e){}
     form.remove();renderSaisonSelector();renderAll();
   };
 });
