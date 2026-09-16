@@ -459,12 +459,22 @@ async function loadSaisonsFromDB(){
 
 async function saveSaisonToDB(nom){
   try{
-    const r=await sbFetch('/rest/v1/mlbb_saisons',{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/mlbb_saisons',{
       method:'POST',
-      body:JSON.stringify({nom,compte:'JS001'}),
-      headers:{'Prefer':'resolution=merge-duplicates'}
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({nom,compte:'JS001'})
     });
-    if(!r.ok)console.warn('saveSaisonToDB failed, table may not exist yet');
+    if(!r.ok){
+      const err=await r.text();
+      console.warn('saveSaisonToDB failed:',r.status,err);
+    } else {
+      console.log('Saison saved to DB:',nom);
+    }
   }catch(e){console.warn('saveSaisonToDB error:',e);}
   // Always persist locally as fallback
   try{
