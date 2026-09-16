@@ -547,7 +547,9 @@ function renderSaisonSelector(){
 }
 
 function matchesForView(applyStatsFilters=true){
-  let list=activeSaison?matches.filter(m=>(m.saison||'S41')===activeSaison):[...matches];
+  // Only filter by saison if there are matches with that saison
+  const saisonHasData=activeSaison&&matches.some(m=>(m.saison||'S41')===activeSaison);
+  let list=saisonHasData?matches.filter(m=>(m.saison||'S41')===activeSaison):[...matches];
   // Apply analytics filters only when called from analytics context
   if(applyStatsFilters){
     const fStatsMode=document.getElementById('fStatsMode')?.value||'';
@@ -596,12 +598,11 @@ async function loadMatches(){
   // Restore activeSaison from localStorage first
   const savedSaison=localStorage.getItem('activeSaison');
   const saisons=getSaisons();
-  if(savedSaison&&savedSaison!==''&&saisons.includes(savedSaison)){
-    // Restore saved saison only if it exists in the list
+  if(savedSaison&&savedSaison!==''){
+    // Always restore saved saison - matchesForView handles empty saison gracefully
     activeSaison=savedSaison;
     window._defaultSaison=savedSaison;
   } else if(saisons.length){
-    // Default to most recent season
     activeSaison=saisons[0];
     window._defaultSaison=saisons[0];
     try{localStorage.setItem('activeSaison',saisons[0]);}catch(e){}
