@@ -546,6 +546,12 @@ async function loadMatches(){
     const r2=localStorage.getItem(STORAGE_KEY);matches=r2?JSON.parse(r2):[];
     document.getElementById('syncStatus').textContent='⚠️ Mode hors ligne';
   }
+  // Set activeSaison to most recent after loading
+  const saisons=getSaisons();
+  if(activeSaison===null&&saisons.length){
+    activeSaison=saisons[0];
+    window._defaultSaison=saisons[0];
+  }
   renderAll();
 }
 
