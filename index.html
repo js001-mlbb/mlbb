@@ -434,8 +434,48 @@ const RANK_TIERS=['Warrior','Elite','Master','Grandmaster','Epic','Legend','Myth
 // ─── GESTION DES SAISONS ───
 let activeSaison = null; // null = toutes saisons
 
+
+// ─── GESTION DES SAISONS SUPABASE ───
+async function loadSaisonsFromDB(){
+  try{
+    const r=await sbFetch('/rest/v1/mlbb_saisons?select=nom&compte=eq.JS001&order=id.asc');
+    if(r.ok){
+      const data=await r.json();
+      const dbSaisons=data.map(row=>row.nom);
+      // Merge with localStorage for offline support
+      try{
+        const local=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
+        const merged=[...new Set([...dbSaisons,...local])];
+        localStorage.setItem('createdSaisons',JSON.stringify(merged));
+      }catch(e){}
+      return dbSaisons;
+    }
+  }catch(e){}
+  // Fallback to localStorage
+  try{return JSON.parse(localStorage.getItem('createdSaisons')||'[]');}catch(e){return[];}
+}
+
+async function saveSaisonToDB(nom){
+  try{
+    await sbFetch('/rest/v1/mlbb_saisons',{
+      method:'POST',
+      body:JSON.stringify({nom,compte:'JS001'}),
+      headers:{'Prefer':'resolution=merge-duplicates'}
+    });
+  }catch(e){console.warn('Saison save failed:',e);}
+  // Also persist locally as fallback
+  try{
+    const created=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
+    if(!created.includes(nom)){created.push(nom);localStorage.setItem('createdSaisons',JSON.stringify(created));}
+  }catch(e){}
+}
 function getSaisons(){
   const s=new Set(matches.map(m=>m.saison).filter(Boolean));
+  // Include seasons from localStorage (synced from DB)
+  try{
+    const saved=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
+    saved.forEach(sn=>s.add(sn));
+  }catch(e){}
   return [...s].sort((a,b)=>{
     const na=parseInt(a.replace(/\D/g,''))||0;
     const nb=parseInt(b.replace(/\D/g,''))||0;
@@ -449,6 +489,7 @@ function getActiveSaison(){
 
 function setActiveSaison(s){
   activeSaison=s;
+  try{localStorage.setItem("activeSaison",s||"");}catch(e){}
   renderSaisonSelector();
   renderAll();
 }
@@ -473,6 +514,7 @@ function renderSaisonSelector(){
   `;
   document.getElementById('saisonSelect').addEventListener('change',e=>{
     activeSaison=e.target.value||null;
+    try{localStorage.setItem('activeSaison',activeSaison||'');}catch(e){}
     renderAll();
   });
   if(document.getElementById('newSaisonBtn'))document.getElementById('newSaisonBtn').addEventListener('click',()=>{
@@ -492,6 +534,8 @@ function renderSaisonSelector(){
       if(!val)return;
       activeSaison=val;
       window._defaultSaison=val;
+      saveSaisonToDB(val);
+      try{localStorage.setItem('activeSaison',val);}catch(e){}
       form.remove();
       renderSaisonSelector();
       renderAll();
@@ -546,9 +590,16 @@ async function loadMatches(){
     const r2=localStorage.getItem(STORAGE_KEY);matches=r2?JSON.parse(r2):[];
     document.getElementById('syncStatus').textContent='⚠️ Mode hors ligne';
   }
-  // Set activeSaison to most recent after loading
+  // Load seasons from DB
+  await loadSaisonsFromDB();
+  // Restore activeSaison from localStorage first
+  const savedSaison=localStorage.getItem('activeSaison');
   const saisons=getSaisons();
-  if(activeSaison===null&&saisons.length){
+  if(savedSaison&&savedSaison!==''){
+    // Use saved saison if it exists in data OR if it's a new season with no data yet
+    activeSaison=savedSaison;
+    window._defaultSaison=savedSaison;
+  } else if(activeSaison===null&&saisons.length){
     activeSaison=saisons[0];
     window._defaultSaison=saisons[0];
   }
@@ -2097,6 +2148,8 @@ document.getElementById('newSaisonMenuBtn').addEventListener('click',()=>{
     const val=document.getElementById('newSaisonInput').value.trim();
     if(!val)return;
     activeSaison=val;window._defaultSaison=val;
+    saveSaisonToDB(val);
+    try{localStorage.setItem('activeSaison',val);}catch(e){}
     form.remove();renderSaisonSelector();renderAll();
   };
 });
