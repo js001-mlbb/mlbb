@@ -559,7 +559,7 @@ async function loadMatches(){
       const data=await r.json();
       matches=data.map(row=>({
         id:row.id, idx:row.idx, date:row.date, heroe:row.heroe, role:row.role,
-        mode_jeu:row.mode_jeu||'Solo', saison:row.saison||'S41', resultat:row.resultat, kills:row.kills, deaths:row.deaths, assists:row.assists,
+        mode_jeu:row.mode_jeu||'Solo', saison:(row.saison||'S42').replace(/^'(.*)'::text$/, '$1'), resultat:row.resultat, kills:row.kills, deaths:row.deaths, assists:row.assists,
         or:row.or_gold, score_performance:row.score_performance,
         degats_infliges:row.degats_infliges, degats_tourelle:row.degats_tourelle,
         degats_subis:row.degats_subis, participation_teamfight:row.participation_teamfight,
