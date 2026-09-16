@@ -428,28 +428,24 @@ const RANK_TIERS=['Warrior','Elite','Master','Grandmaster','Epic','Legend','Myth
 
 // ─── GESTION DES SAISONS ───
 let activeSaison = null; // null = toutes saisons
+let dbSaisonsCache = []; // Seasons from Supabase mlbb_saisons
 
 
 // ─── GESTION DES SAISONS SUPABASE ───
 async function loadSaisonsFromDB(){
   try{
-    const r=await sbFetch('/rest/v1/mlbb_saisons?select=nom&compte=eq.JS001&order=id.asc');
+    const r=await sbFetch('/rest/v1/mlbb_saisons?select=nom&ordre=id.asc&compte=eq.JS001');
     if(r.ok){
       const data=await r.json();
       const dbSaisons=data.map(row=>row.nom);
-      try{
-        const local=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-        const merged=[...new Set([...dbSaisons,...local])];
-        localStorage.setItem('createdSaisons',JSON.stringify(merged));
-      }catch(e){}
+      dbSaisonsCache=dbSaisons;
       return dbSaisons;
     }
-    // 404 or other error - table doesn't exist yet, use localStorage only
-    console.warn('mlbb_saisons table not found, using localStorage fallback');
+    console.warn('mlbb_saisons table not found or error');
   }catch(e){
     console.warn('loadSaisonsFromDB error:', e);
   }
-  try{return JSON.parse(localStorage.getItem('createdSaisons')||'[]');}catch(e){return[];}
+  return [];
 }
 
 async function saveSaisonToDB(nom){
@@ -471,21 +467,14 @@ async function saveSaisonToDB(nom){
       console.log('Saison saved to DB:',nom);
     }
   }catch(e){console.warn('saveSaisonToDB error:',e);}
-  // Always persist locally as fallback
-  try{
-    const created=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-    if(!created.includes(nom)){created.push(nom);localStorage.setItem('createdSaisons',JSON.stringify(created));}
-  }catch(e){}
+
 }
 
 
 function getSaisons(){
+  // Seasons from match data + DB saisons (loaded into dbSaisons cache)
   const s=new Set(matches.map(m=>m.saison).filter(Boolean));
-  // Include seasons from localStorage (synced from DB)
-  try{
-    const saved=JSON.parse(localStorage.getItem('createdSaisons')||'[]');
-    saved.forEach(sn=>s.add(sn));
-  }catch(e){}
+  dbSaisonsCache.forEach(sn=>s.add(sn));
   return [...s].sort((a,b)=>{
     const na=parseInt(a.replace(/\D/g,''))||0;
     const nb=parseInt(b.replace(/\D/g,''))||0;
@@ -517,7 +506,6 @@ function renderSaisonSelector(){
   `;
   document.getElementById('saisonSelect').addEventListener('change',e=>{
     activeSaison=e.target.value||null;
-    try{localStorage.setItem('activeSaison',activeSaison||'');}catch(e){}
     renderAll();
   });
   if(document.getElementById('newSaisonBtn'))document.getElementById('newSaisonBtn').addEventListener('click',()=>{
@@ -538,7 +526,6 @@ function renderSaisonSelector(){
       activeSaison=val;
       window._defaultSaison=val;
       saveSaisonToDB(val);
-      try{localStorage.setItem('activeSaison',val);}catch(e){}
       form.remove();
       renderSaisonSelector();
       renderAll();
@@ -598,16 +585,22 @@ async function loadMatches(){
   // Restore activeSaison from localStorage first
   const savedSaison=localStorage.getItem('activeSaison');
   const saisons=getSaisons();
-  if(savedSaison&&savedSaison!==''){
-    // Always restore saved saison - matchesForView handles empty saison gracefully
-    activeSaison=savedSaison;
-    window._defaultSaison=savedSaison;
-  } else if(saisons.length){
-    activeSaison=saisons[0];
-    window._defaultSaison=saisons[0];
-    try{localStorage.setItem('activeSaison',saisons[0]);}catch(e){}
+  // Set activeSaison from actual match data (most recent saison with data)
+  const saisonCounts={};
+  matches.forEach(m=>{const s=m.saison||'S41';saisonCounts[s]=(saisonCounts[s]||0)+1;});
+  const saisonsWithData=Object.keys(saisonCounts).sort((a,b)=>{
+    const na=parseInt(a.replace(/\D/g,''))||0;
+    const nb=parseInt(b.replace(/\D/g,''))||0;
+    return nb-na;
+  });
+  // Use current activeSaison if it has data, otherwise use most recent with data
+  if(!activeSaison||!saisonCounts[activeSaison]){
+    if(saisonsWithData.length){
+      activeSaison=saisonsWithData[0];
+      window._defaultSaison=saisonsWithData[0];
+    }
   }
-  renderAll();
+    renderAll();
 }
 
 async function persist(){
@@ -2150,7 +2143,6 @@ document.getElementById('newSaisonMenuBtn').addEventListener('click',()=>{
     if(!val)return;
     activeSaison=val;window._defaultSaison=val;
     saveSaisonToDB(val);
-    try{localStorage.setItem('activeSaison',val);}catch(e){}
     form.remove();renderSaisonSelector();renderAll();
   };
 });
