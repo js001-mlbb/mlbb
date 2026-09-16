@@ -1789,7 +1789,7 @@ async function analyzeScreenshots(){
     const response=await fetch('https://mlbb-proxy.yinhosan.workers.dev/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'qwen/qwen3.6-27b',max_tokens:2000,response_format:{type:'json_object'},messages:[{role:'user',content:groqContent}]})
+      body:JSON.stringify({model:'qwen/qwen3.8-27b',max_tokens:2000,response_format:{type:'json_object'},messages:[{role:'user',content:groqContent}]})
     });
     if(!response.ok){const err=await response.json().catch(()=>({}));throw new Error(err.error?.message||response.status);}
     const data=await response.json();
