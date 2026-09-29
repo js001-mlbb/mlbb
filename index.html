@@ -553,7 +553,7 @@ function matchesForView(applyStatsFilters=true){
 async function loadMatches(){
   document.getElementById('syncStatus').textContent='⏳ Synchronisation…';
   try{
-    const r=await sbFetch('/rest/v1/mlbb_matches_js002?select=*&order=idx.asc');
+    const r=await sbFetch('/rest/v1/mlbb_matches?select=*&order=idx.asc');
 
     if(r.ok){
       const data=await r.json();
@@ -618,12 +618,12 @@ async function persist(){
       score_allie:m.score_allie??null, score_ennemi:m.score_ennemi??null,
       compo_allie:m.compo_allie||null, compo_adverse:m.compo_adverse||null
     }));
-    await sbFetch('/rest/v1/mlbb_matches_js002',{method:'POST',body:JSON.stringify(rows),headers:{'Prefer':'resolution=merge-duplicates'}});
+    await sbFetch('/rest/v1/mlbb_matches',{method:'POST',body:JSON.stringify(rows),headers:{'Prefer':'resolution=merge-duplicates'}});
   }catch(e){console.error('Supabase sync error',e);}
 }
 
 async function deleteFromSupabase(id){
-  try{await sbFetch('/rest/v1/mlbb_matches_js002?id=eq.'+encodeURIComponent(id),{method:'DELETE'});}
+  try{await sbFetch('/rest/v1/mlbb_matches?id=eq.'+encodeURIComponent(id),{method:'DELETE'});}
   catch(e){console.error('Supabase delete error',e);}
 }
 
